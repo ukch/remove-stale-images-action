@@ -5,13 +5,14 @@ import GHAPI from './ghapi'
 
 async function run(): Promise<void> {
   try {
+    const user = core.getInput('user') || context.repo.owner
     const token = core.getInput('token')
     const packages = core.getInput('packages').split(',')
     const keep = parseInt(core.getInput('keep'))
 
     core.info(`ℹ I will keep the latest ${keep} versions of each package.`)
 
-    await stale(context.repo.owner, packages, keep, new GHAPI(token), core.info)
+    await stale(user, packages, keep, new GHAPI(token), core.info)
   } catch (error) {
     core.debug(error)
 
