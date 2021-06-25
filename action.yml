@@ -8,6 +8,9 @@ inputs:
   token: # change this
     required: true
     description: 'A github auth token.'
+  user:
+    required: true
+    description: 'A github user (default is the owner of the package)'
   packages:
     required: true
     description: 'A comma seperated list of package names.'
