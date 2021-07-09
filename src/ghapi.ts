@@ -4,9 +4,12 @@ import orgPackagesQuery, { PackagesResponse as OrgPackagesResponse } from './que
 import userPackagesQuery, { PackagesResponse as UserPackagesResponse } from './queries/packagesUser'
 import deletePackageMutation, { DeletePackageResponse } from './queries/remove_package'
 
-type PackagesResponse = OrgPackagesResponse | UserPackagesResponse;
+type PackagesResponse = OrgPackagesResponse | UserPackagesResponse
 
-export enum QueryTypes { user, organization }
+export enum QueryTypes {
+  user,
+  organization
+}
 
 export interface IGHAPI {
   getDockerImages(type: QueryTypes, login: string, names: string[]): Promise<PackagesResponse>

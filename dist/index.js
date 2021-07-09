@@ -584,16 +584,17 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const core = __importStar(__webpack_require__(470));
 const github_1 = __webpack_require__(469);
 const stale_1 = __importDefault(__webpack_require__(246));
-const ghapi_1 = __importDefault(__webpack_require__(690));
+const ghapi_1 = __importStar(__webpack_require__(690));
 function run() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
-            const user = core.getInput('user') || github_1.context.repo.owner;
+            const user = github_1.context.repo.owner;
+            const queryType = core.getInput('organization') ? ghapi_1.QueryTypes.organization : ghapi_1.QueryTypes.user;
             const token = core.getInput('token');
             const packages = core.getInput('packages').split(',');
             const keep = parseInt(core.getInput('keep'));
             core.info(`ℹ I will keep the latest ${keep} versions of each package.`);
-            yield stale_1.default(user, packages, keep, new ghapi_1.default(token), core.info);
+            yield stale_1.default(user, queryType, packages, keep, new ghapi_1.default(token), core.info);
         }
         catch (error) {
             core.debug(error);
@@ -629,9 +630,10 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 // Makes sure that only "keep"-amount of versions exist for each package "names" in the account of the "owner"
-function stale(owner, packageNames, keep, api, info = () => { }) {
+function stale(owner, queryType, packageNames, keep, api, info = () => { }) {
     return __awaiter(this, void 0, void 0, function* () {
-        const { user: { packages: { edges: packages } } } = yield api.getDockerImages(owner, packageNames);
+        const response = yield api.getDockerImages(queryType, owner, packageNames);
+        const { packages: { edges: packages } } = 'user' in response ? response.user : response.organization;
         for (const dockerPackage of packages) {
             info(`🔎 Processing package ${dockerPackage.node.name} (${dockerPackage.node.id}).`);
             const { versions } = dockerPackage.node;
@@ -714,6 +716,40 @@ exports.Context = Context;
 
 /***/ }),
 
+/***/ 276:
+/***/ (function(__unusedmodule, exports) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.default = `
+  query Packages($login: String!, $names: [String!]) {
+    user(login: $login) {
+      packages(packageType: DOCKER, first: 100, names: $names) {
+        edges {
+          node {
+            id
+            name
+            versions(
+              orderBy: { field: CREATED_AT, direction: ASC }
+              first: 100
+            ) {
+              totalCount
+              nodes {
+                id
+                version
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+`;
+
+
+/***/ }),
+
 /***/ 280:
 /***/ (function(module) {
 
@@ -745,40 +781,6 @@ function register (state, name, method, options) {
       }, method)()
     })
 }
-
-
-/***/ }),
-
-/***/ 298:
-/***/ (function(__unusedmodule, exports) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.default = `
-  query Packages($login: String!, $names: [String!]) {
-    user(login: $login) {
-      packages(packageType: DOCKER, first: 100, names: $names) {
-        edges {
-          node {
-            id
-            name
-            versions(
-              orderBy: { field: CREATED_AT, direction: ASC }
-              first: 100
-            ) {
-              totalCount
-              nodes {
-                id
-                version
-              }
-            }
-          }
-        }
-      }
-    }
-  }
-`;
 
 
 /***/ }),
@@ -4554,9 +4556,16 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.QueryTypes = void 0;
 const graphql_request_1 = __webpack_require__(821);
-const packages_1 = __importDefault(__webpack_require__(298));
+const packagesOrg_1 = __importDefault(__webpack_require__(886));
+const packagesUser_1 = __importDefault(__webpack_require__(276));
 const remove_package_1 = __importDefault(__webpack_require__(459));
+var QueryTypes;
+(function (QueryTypes) {
+    QueryTypes[QueryTypes["user"] = 0] = "user";
+    QueryTypes[QueryTypes["organization"] = 1] = "organization";
+})(QueryTypes = exports.QueryTypes || (exports.QueryTypes = {}));
 class GHAPI {
     constructor(token) {
         this.client = new graphql_request_1.GraphQLClient('https://api.github.com/graphql', {
@@ -4566,9 +4575,10 @@ class GHAPI {
             }
         });
     }
-    getDockerImages(login, names) {
+    getDockerImages(type, login, names) {
         return __awaiter(this, void 0, void 0, function* () {
-            return this.client.request(packages_1.default, {
+            const packagesQuery = type === QueryTypes.user ? packagesUser_1.default : packagesOrg_1.default;
+            return this.client.request(packagesQuery, {
                 login,
                 names
             });
@@ -6307,6 +6317,40 @@ function removeHook (state, name, method) {
 
   state.registry[name].splice(index, 1)
 }
+
+
+/***/ }),
+
+/***/ 886:
+/***/ (function(__unusedmodule, exports) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.default = `
+  query Packages($login: String!, $names: [String!]) {
+    organization(login: $login) {
+      packages(packageType: DOCKER, first: 100, names: $names) {
+        edges {
+          node {
+            id
+            name
+            versions(
+              orderBy: { field: CREATED_AT, direction: ASC }
+              first: 100
+            ) {
+              totalCount
+              nodes {
+                id
+                version
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+`;
 
 
 /***/ }),
