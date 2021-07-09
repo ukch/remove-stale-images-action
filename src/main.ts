@@ -1,7 +1,7 @@
 import * as core from '@actions/core'
 import { context } from '@actions/github'
 import stale from './stale'
-import GHAPI from './ghapi'
+import GHAPI, { QueryTypes } from './ghapi'
 
 async function run(): Promise<void> {
   try {
@@ -12,7 +12,7 @@ async function run(): Promise<void> {
 
     core.info(`ℹ I will keep the latest ${keep} versions of each package.`)
 
-    await stale(user, packages, keep, new GHAPI(token), core.info)
+    await stale(user, QueryTypes.user, packages, keep, new GHAPI(token), core.info)
   } catch (error) {
     core.debug(error)
 

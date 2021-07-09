@@ -1,10 +1,15 @@
 import { GraphQLClient } from 'graphql-request'
 
-import packagesQuery, { PackagesResponse } from './queries/packages'
+import orgPackagesQuery, { PackagesResponse as OrgPackagesResponse } from './queries/packagesOrg'
+import userPackagesQuery, { PackagesResponse as UserPackagesResponse } from './queries/packagesUser'
 import deletePackageMutation, { DeletePackageResponse } from './queries/remove_package'
 
+type PackagesResponse = OrgPackagesResponse | UserPackagesResponse;
+
+export enum QueryTypes { user, organization }
+
 export interface IGHAPI {
-  getDockerImages(login: string, names: string[]): Promise<PackagesResponse>
+  getDockerImages(type: QueryTypes, login: string, names: string[]): Promise<PackagesResponse>
   deletePackage(id: string): Promise<DeletePackageResponse>
 }
 
@@ -20,7 +25,8 @@ export default class GHAPI implements IGHAPI {
     })
   }
 
-  async getDockerImages(login: string, names: string[]): Promise<PackagesResponse> {
+  async getDockerImages(type: QueryTypes, login: string, names: string[]): Promise<PackagesResponse> {
+    const packagesQuery = type === QueryTypes.user ? userPackagesQuery : orgPackagesQuery
     return this.client.request<PackagesResponse>(packagesQuery, {
       login,
       names

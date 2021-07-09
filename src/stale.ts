@@ -1,18 +1,18 @@
-import { IGHAPI } from './ghapi'
+import { QueryTypes, IGHAPI } from './ghapi'
 
 // Makes sure that only "keep"-amount of versions exist for each package "names" in the account of the "owner"
 export default async function stale(
   owner: string,
+  queryType: QueryTypes,
   packageNames: string[],
   keep: number,
   api: IGHAPI,
   info: (msg: string) => void = () => {}
 ): Promise<void> {
+  const response = await api.getDockerImages(queryType, owner, packageNames)
   const {
-    user: {
-      packages: { edges: packages }
-    }
-  } = await api.getDockerImages(owner, packageNames)
+    packages: { edges: packages }
+  } = 'user' in response ? response.user : response.organization
 
   for (const dockerPackage of packages) {
     info(`🔎 Processing package ${dockerPackage.node.name} (${dockerPackage.node.id}).`)
