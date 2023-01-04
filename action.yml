@@ -19,5 +19,5 @@ inputs:
     required: true
     description: 'A number specifying how many images should be kept.'
 runs:
-  using: 'node12'
+  using: 'node16'
   main: 'dist/index.js'
